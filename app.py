@@ -4,224 +4,311 @@ import plotly.express as px
 import plotly.graph_objects as go
 import os
 
-# Configuração da Página
-st.set_page_config(layout="wide", page_title="Dashboard Union")
+# --- CONFIGURAÇÃO DA PÁGINA ---
+st.set_page_config(layout="wide", page_title="Dashboard Union", initial_sidebar_state="expanded")
 
-# Estilização CSS
+# --- ESTILIZAÇÃO CSS (Visual Figma) ---
 st.markdown("""
 <style>
-    .metric-card {
-        background-color: #FFFFFF;
-        border-radius: 10px;
-        padding: 20px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
+    /* Fundo geral */
     .stApp {
         background-color: #F5F5F7;
+    }
+    
+    /* Estilo dos Cards de KPI */
+    div[data-testid="metric-container"] {
+        background-color: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        border: 1px solid #E5E7EB;
+    }
+    
+    /* Títulos das Métricas */
+    div[data-testid="metric-container"] label {
+        font-size: 14px;
+        color: #6B7280;
+        font-weight: 500;
+    }
+    
+    /* Valores das Métricas */
+    div[data-testid="metric-container"] div[data-testid="stMetricValue"] {
+        font-size: 24px;
+        color: #111827;
+        font-weight: 700;
+    }
+
+    /* Ajuste de espaçamento */
+    .block-container {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# --- CARREGAMENTO DE DADOS (COM CORREÇÃO AUTOMÁTICA) ---
+# --- FUNÇÕES DE LIMPEZA DE DADOS ---
+def clean_currency(x):
+    """Converte strings como 'R$ 1.000,00' para float 1000.00"""
+    if isinstance(x, str):
+        # Remove R$, espaços e pontos de milhar
+        clean_str = x.replace('R$', '').replace('.', '').replace(' ', '').strip()
+        # Troca vírgula decimal por ponto
+        clean_str = clean_str.replace(',', '.')
+        try:
+            return float(clean_str)
+        except ValueError:
+            return 0.0
+    return x
+
+def clean_percentage(x):
+    """Converte strings como '25,5%' para float 25.5"""
+    if isinstance(x, str):
+        clean_str = x.replace('%', '').replace(',', '.').strip()
+        try:
+            return float(clean_str)
+        except ValueError:
+            return 0.0
+    return x
+
+# --- CARREGAMENTO DE DADOS ---
 @st.cache_data
 def load_data():
     try:
-        # Tenta ler o arquivo padrão 'dados.csv'
-        df = pd.read_csv("dados.csv")
-    except FileNotFoundError:
-        # Se não achar, procura QUALQUER arquivo .csv na pasta
-        arquivos_csv = [f for f in os.listdir('.') if f.endswith('.csv')]
+        # Procura arquivos CSV na pasta
+        arquivos_csv = [f for f in os.listdir('.') if f.endswith('.csv') or f.endswith('.CSV')]
         
-        if arquivos_csv:
-            arquivo_encontrado = arquivos_csv[0]
-            st.warning(f"⚠️ Arquivo 'dados.csv' não encontrado. Usando automaticamente: '{arquivo_encontrado}'. (Recomendado renomear no GitHub para evitar este aviso).")
-            df = pd.read_csv(arquivo_encontrado)
-        else:
-            # Se não tiver nenhum CSV, mostra o que tem na pasta para ajudar a debugar
-            st.error("❌ ERRO CRÍTICO: Nenhum arquivo CSV encontrado no GitHub.")
-            st.code(f"Arquivos disponíveis na pasta: {os.listdir('.')}")
+        if not arquivos_csv:
+            st.error("❌ Nenhum arquivo CSV encontrado no GitHub.")
             st.stop()
-    except Exception as e:
-        st.error(f"Erro desconhecido ao ler o arquivo: {e}")
-        st.stop()
+            
+        # Pega o primeiro CSV encontrado (prioridade para 'base.csv' ou 'dados.csv' se existirem)
+        arquivo_alvo = arquivos_csv[0]
+        for f in arquivos_csv:
+            if 'base' in f.lower() or 'dados' in f.lower():
+                arquivo_alvo = f
+                break
+                
+        df = pd.read_csv(arquivo_alvo)
         
-    # Limpeza básica e conversão de tipos se necessário
-    # Removemos linhas onde a Venda 2022 está vazia
-    if 'Venda 2022 R$' in df.columns:
-        df = df.dropna(subset=['Venda 2022 R$'])
-    
-    return df
+        # 1. REMOVER ESPAÇOS DOS NOMES DAS COLUNAS (Crucial!)
+        df.columns = df.columns.str.strip()
+        
+        # 2. SELEÇÃO E LIMPEZA DAS COLUNAS NECESSÁRIAS
+        # Mapeamento para garantir nomes fáceis de trabalhar
+        col_map = {
+            'Venda 2022 R$': 'Venda',
+            'Meta Venda 2022': 'Meta',
+            'Margem Bruta 2022 %': 'Margem_Percent',
+            'Qtd de cupom 2022': 'Clientes',
+            'NOME LOJA': 'Loja',
+            'MÊS': 'Mes'
+        }
+        
+        # Verifica se as colunas existem (mesmo com nomes levemente diferentes)
+        cols_found = {}
+        for key in col_map.keys():
+            if key in df.columns:
+                cols_found[key] = col_map[key]
+            else:
+                # Tenta achar ignorando case sensitive
+                for col_original in df.columns:
+                    if key.lower() in col_original.lower():
+                        cols_found[col_original] = col_map[key]
+                        break
+        
+        if not cols_found:
+            st.error("Não foi possível identificar as colunas principais (Venda, Meta, Margem). Verifique o CSV.")
+            st.write("Colunas encontradas:", df.columns.tolist())
+            st.stop()
+            
+        # Renomeia para facilitar
+        df = df.rename(columns=cols_found)
+        
+        # Aplica conversão numérica
+        cols_numericas = ['Venda', 'Meta', 'Clientes']
+        for col in cols_numericas:
+            if col in df.columns:
+                if df[col].dtype == 'object':
+                    df[col] = df[col].apply(clean_currency)
+                else:
+                    df[col] = df[col].fillna(0)
 
+        if 'Margem_Percent' in df.columns:
+            if df['Margem_Percent'].dtype == 'object':
+                 df['Margem_Percent'] = df['Margem_Percent'].apply(clean_percentage)
+        
+        # Remove linhas vazias de venda
+        df = df[df['Venda'] > 0]
+        
+        return df
+        
+    except Exception as e:
+        st.error(f"Erro ao processar dados: {e}")
+        st.stop()
+        return pd.DataFrame()
+
+# Carrega os dados
 df = load_data()
 
-if df.empty:
-    st.warning("O arquivo foi carregado, mas parece estar vazio ou com colunas diferentes do esperado.")
-    st.write("Colunas encontradas:", df.columns.tolist())
-    st.stop()
+# --- SIDEBAR (FILTROS) ---
+st.sidebar.image("https://cdn-icons-png.flaticon.com/512/2857/2857433.png", width=50) # Placeholder logo
+st.sidebar.title("Filtros")
 
-# --- CÁLCULOS DOS KPIS ---
-# Verificação de segurança para garantir que as colunas existem
-if 'Venda 2022 R$' not in df.columns:
-    st.error("As colunas esperadas não estão no arquivo. Verifique se subiu o arquivo 'BASE'.")
-    st.write("Colunas do seu arquivo:", df.columns)
-    st.stop()
+# Filtro de Mês
+meses_disponiveis = df['Mes'].unique()
+# Ordenação customizada de meses
+ordem_meses = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ']
+meses_ordenados = sorted([m for m in meses_disponiveis if m in ordem_meses], key=lambda x: ordem_meses.index(x))
 
-venda_total = df['Venda 2022 R$'].sum()
-meta_total = df['Meta Venda 2022'].sum() if 'Meta Venda 2022' in df.columns else 0
-margem_media = df['Margem Bruta 2022 %'].mean() * 100
-qtd_clientes = df['Qtd de cupom 2022'].sum()
-ticket_medio = venda_total / qtd_clientes if qtd_clientes > 0 else 0
+mes_selecionado = st.sidebar.multiselect("Selecione o Mês", meses_ordenados, default=meses_ordenados)
 
-# Variação (Exemplo simples comparando com 2021)
-venda_2021 = df['Venda 2021 R$'].sum() if 'Venda 2021 R$' in df.columns else 0
-variacao_venda = ((venda_total - venda_2021) / venda_2021) * 100 if venda_2021 > 0 else 0
+# Filtro de Loja
+lojas_disponiveis = sorted(df['Loja'].unique().astype(str))
+loja_selecionada = st.sidebar.multiselect("Selecione a Loja", lojas_disponiveis, default=lojas_disponiveis)
 
-# --- HEADER ---
-st.title("📊 Painel de Performance")
-st.markdown("---")
+# Aplicando Filtros
+df_filtered = df.copy()
+if mes_selecionado:
+    df_filtered = df_filtered[df_filtered['Mes'].isin(mes_selecionado)]
+if loja_selecionada:
+    df_filtered = df_filtered[df_filtered['Loja'].isin(loja_selecionada)]
 
-# --- KPI CARDS ---
-col1, col2, col3, col4 = st.columns(4)
+# --- CÁLCULOS KPI ---
+venda_total = df_filtered['Venda'].sum()
+meta_total = df_filtered['Meta'].sum()
+# Média ponderada da margem seria o ideal, mas faremos média simples dos registros filtrados para simplificar visualização
+margem_media = df_filtered['Margem_Percent'].mean()
+clientes_total = df_filtered['Clientes'].sum()
+ticket_medio = venda_total / clientes_total if clientes_total > 0 else 0
 
-with col1:
-    st.metric(
-        label="Venda Total", 
-        value=f"R$ {venda_total:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
-        delta=f"{variacao_venda:.1f}% vs 2021"
+# --- INTERFACE PRINCIPAL ---
+
+st.title("Performance de Vendas")
+st.markdown(f"Visão Geral • **{'Todas as Lojas' if len(loja_selecionada) == len(lojas_disponiveis) else 'Lojas Selecionadas'}**")
+
+# Espaçamento
+st.markdown("###")
+
+# KPI CARDS
+kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+
+with kpi1:
+    st.metric("Venda Total", f"R$ {venda_total:,.2f}".replace(",", "_").replace(".", ",").replace("_", "."))
+
+with kpi2:
+    st.metric("Margem Média", f"{margem_media:.2f}%", delta_color="normal")
+
+with kpi3:
+    st.metric("Ticket Médio", f"R$ {ticket_medio:.2f}".replace(",", "_").replace(".", ",").replace("_", "."))
+
+with kpi4:
+    st.metric("Clientes (Cupons)", f"{clientes_total:,.0f}".replace(",", "."))
+
+st.markdown("###")
+
+# --- GRÁFICOS ---
+
+col_g1, col_g2 = st.columns([2, 1])
+
+# Gráfico de Evolução (Barras + Linha)
+with col_g1:
+    st.subheader("Evolução de Vendas vs Meta")
+    
+    # Agrupamento por mês
+    df_chart = df_filtered.groupby('Mes')[['Venda', 'Meta']].sum().reset_index()
+    # Ordenar meses
+    df_chart['Mes'] = pd.Categorical(df_chart['Mes'], categories=ordem_meses, ordered=True)
+    df_chart = df_chart.sort_values('Mes')
+    
+    fig_combo = go.Figure()
+    
+    # Barra Vendas
+    fig_combo.add_trace(go.Bar(
+        x=df_chart['Mes'],
+        y=df_chart['Venda'],
+        name='Venda Realizada',
+        marker_color='#6366F1', # Cor indigo moderna
+        radius=4
+    ))
+    
+    # Linha Meta
+    fig_combo.add_trace(go.Scatter(
+        x=df_chart['Mes'],
+        y=df_chart['Meta'],
+        name='Meta',
+        mode='lines+markers',
+        line=dict(color='#10B981', width=3), # Verde esmeralda
+        marker=dict(size=8)
+    ))
+    
+    fig_combo.update_layout(
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        margin=dict(t=20, b=20, l=20, r=20),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        xaxis=dict(showgrid=False),
+        yaxis=dict(showgrid=True, gridcolor='#F3F4F6'),
+        height=400
     )
+    st.plotly_chart(fig_combo, use_container_width=True)
 
-with col2:
-    st.metric(
-        label="Margem Bruta", 
-        value=f"{margem_media:.2f}%"
-    )
-
-with col3:
-    st.metric(
-        label="Ticket Médio", 
-        value=f"R$ {ticket_medio:.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-    )
-
-with col4:
-    st.metric(
-        label="Nº Clientes", 
-        value=f"{qtd_clientes:,.0f}".replace(",", ".")
-    )
-
-st.markdown("---")
-
-# --- GRÁFICOS (LINHA 1) ---
-col_charts_1, col_charts_2 = st.columns(2)
-
-# Gráfico 1: Evolução Mensal (Venda vs Meta)
-with col_charts_1:
-    st.subheader("Evolução Mensal")
-    # Agrupando por mês
-    if 'MÊS' in df.columns:
-        df_monthly = df.groupby('MÊS')[['Venda 2022 R$', 'Meta Venda 2022']].sum().reset_index()
-        
-        # Ordenação correta dos meses (se necessário, criar mapa de ordem)
-        meses_ordem = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ']
-        df_monthly['MÊS'] = pd.Categorical(df_monthly['MÊS'], categories=meses_ordem, ordered=True)
-        df_monthly = df_monthly.sort_values('MÊS')
-
-        fig_evolution = go.Figure()
-        fig_evolution.add_trace(go.Bar(
-            x=df_monthly['MÊS'], 
-            y=df_monthly['Venda 2022 R$'], 
-            name='Realizado',
-            marker_color='#4F46E5'
-        ))
-        if 'Meta Venda 2022' in df_monthly.columns:
-            fig_evolution.add_trace(go.Scatter(
-                x=df_monthly['MÊS'], 
-                y=df_monthly['Meta Venda 2022'], 
-                name='Meta', 
-                mode='lines+markers',
-                line=dict(color='#EF4444', width=2)
-            ))
-        fig_evolution.update_layout(height=400, margin=dict(l=20, r=20, t=20, b=20))
-        st.plotly_chart(fig_evolution, use_container_width=True)
-    else:
-        st.warning("Coluna 'MÊS' não encontrada para gerar gráfico de evolução.")
-
-# Gráfico 2: Progresso da Meta (Gauge Chart)
-with col_charts_2:
-    st.subheader("Atingimento da Meta Global")
+# Gráfico de Atingimento de Meta (Gauge)
+with col_g2:
+    st.subheader("Atingimento Global")
+    
+    percentual_atingimento = (venda_total / meta_total * 100) if meta_total > 0 else 0
+    
     fig_gauge = go.Figure(go.Indicator(
-        mode = "gauge+number+delta",
-        value = venda_total,
-        domain = {'x': [0, 1], 'y': [0, 1]},
-        title = {'text': "Vendas vs Meta"},
-        delta = {'reference': meta_total, 'relative': True, "valueformat": ".1%"},
+        mode = "gauge+number",
+        value = percentual_atingimento,
+        number = {'suffix': "%", 'font': {'size': 40, 'color': "#111827"}},
         gauge = {
-            'axis': {'range': [None, meta_total * 1.2 if meta_total > 0 else venda_total * 1.2]},
-            'bar': {'color': "#4F46E5"},
+            'axis': {'range': [None, 120], 'tickwidth': 1, 'tickcolor': "white"},
+            'bar': {'color': "#6366F1"},
+            'bgcolor': "white",
+            'borderwidth': 2,
+            'bordercolor': "gray",
             'steps': [
-                {'range': [0, meta_total], 'color': "lightgray"},
+                {'range': [0, 100], 'color': "#E5E7EB"},
+                {'range': [100, 120], 'color': "#D1FAE5"}
             ],
             'threshold': {
-                'line': {'color': "red", 'width': 4},
+                'line': {'color': "#10B981", 'width': 4},
                 'thickness': 0.75,
-                'value': meta_total
+                'value': 100
             }
         }
     ))
-    fig_gauge.update_layout(height=400)
+    
+    fig_gauge.update_layout(
+        height=400, 
+        margin=dict(t=40, b=20),
+        paper_bgcolor='white',
+        font={'family': "Arial"}
+    )
     st.plotly_chart(fig_gauge, use_container_width=True)
 
-# --- GRÁFICOS (LINHA 2) ---
-col_charts_3, col_charts_4 = st.columns(2)
-
-# Gráfico 3: Distribuição por Loja/Regional
-with col_charts_3:
-    st.subheader("Vendas por Loja")
-    if 'NOME LOJA' in df.columns:
-        # Agrupando por Nome da Loja (Top 10)
-        df_store = df.groupby('NOME LOJA')['Venda 2022 R$'].sum().sort_values(ascending=True).tail(10)
-        
-        fig_bar = px.bar(
-            df_store, 
-            x=df_store.values, 
-            y=df_store.index, 
-            orientation='h',
-            color_discrete_sequence=['#10B981']
-        )
-        fig_bar.update_layout(height=400, showlegend=False)
-        st.plotly_chart(fig_bar, use_container_width=True)
-    else:
-        st.info("Coluna 'NOME LOJA' não encontrada.")
-
-# Gráfico 4: Margem por Mês
-with col_charts_4:
-    st.subheader("Margem % por Mês")
-    if 'MÊS' in df.columns:
-        # Recalculando margem média ponderada por mês se necessário, ou média simples
-        df_margin = df.groupby('MÊS')['Margem Bruta 2022 %'].mean().reset_index()
-        df_margin['Margem Bruta 2022 %'] = df_margin['Margem Bruta 2022 %'] * 100
-        
-        # Ordenar
-        df_margin['MÊS'] = pd.Categorical(df_margin['MÊS'], categories=meses_ordem, ordered=True)
-        df_margin = df_margin.sort_values('MÊS')
-
-        fig_line = px.line(
-            df_margin, 
-            x='MÊS', 
-            y='Margem Bruta 2022 %',
-            markers=True,
-            color_discrete_sequence=['#F59E0B']
-        )
-        fig_line.update_layout(height=400)
-        st.plotly_chart(fig_line, use_container_width=True)
-
-# --- TABELA DE DADOS ---
+# --- TABELA DETALHADA ---
 st.subheader("Detalhamento por Loja")
-cols_to_show = ['MÊS', 'NOME LOJA', 'Venda 2022 R$', 'Margem Bruta 2022 %', 'Meta Venda 2022']
-# Filtra apenas colunas que realmente existem no df
-cols_exists = [c for c in cols_to_show if c in df.columns]
+df_table = df_filtered.groupby('Loja')[['Venda', 'Meta', 'Clientes']].sum().reset_index()
+df_table['Atingimento %'] = (df_table['Venda'] / df_table['Meta'] * 100).fillna(0)
+df_table = df_table.sort_values('Venda', ascending=False)
 
+# Formatação para exibição
 st.dataframe(
-    df[cols_exists], 
+    df_table.style.format({
+        'Venda': 'R$ {:,.2f}',
+        'Meta': 'R$ {:,.2f}',
+        'Clientes': '{:,.0f}',
+        'Atingimento %': '{:.1f}%'
+    }),
     use_container_width=True,
-    hide_index=True
+    column_config={
+        "Atingimento %": st.column_config.ProgressColumn(
+            "Atingimento da Meta",
+            format="%.1f%%",
+            min_value=0,
+            max_value=120,
+        ),
+    }
 )
