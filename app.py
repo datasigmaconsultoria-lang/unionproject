@@ -307,7 +307,8 @@ with tab1:
                 df_chart = df_chart.sort_values('Venda', ascending=False)
 
             fig = go.Figure()
-            fig.add_trace(go.Bar(x=df_chart[idx_col], y=df_chart['Venda'], name='Realizado', marker_color='#6750A4', radius=5))
+            # Removido radius=5 que causava erro
+            fig.add_trace(go.Bar(x=df_chart[idx_col], y=df_chart['Venda'], name='Realizado', marker_color='#6750A4'))
             fig.add_trace(go.Scatter(x=df_chart[idx_col], y=df_chart['Meta'], name='Meta', mode='lines+markers', line=dict(color='#00C853', width=3)))
             
             fig.update_layout(height=350, margin=dict(l=0,r=0,t=30,b=0), legend=dict(orientation="h", y=1.1), plot_bgcolor='white', yaxis=dict(showgrid=True, gridcolor='#F3F4F6'))
