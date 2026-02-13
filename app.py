@@ -27,6 +27,11 @@ st.markdown("""
         --md-sys-color-surface-container: #FFFFFF;
         --md-sys-color-on-surface: #1C1B1F;
         --md-sys-color-outline: #E0E3E7;
+        --chart-color-1: #6750A4;
+        --chart-color-2: #9C27B0;
+        --chart-color-3: #E91E63;
+        --chart-color-4: #3F51B5;
+        --chart-color-5: #2196F3;
     }
 
     /* Reset Geral */
@@ -117,9 +122,12 @@ st.markdown("""
 
 # --- FUNÇÕES DE LIMPEZA ROBUSTAS ---
 def clean_currency_br(x):
+    """Limpeza extrema para evitar erros de conversão"""
     if pd.isna(x) or x == "": return 0.0
     if isinstance(x, (int, float)): return float(x)
-    s = str(x).strip().replace('R$', '').replace(' ', '')
+    # Remove aspas, R$, espaços
+    s = str(x).strip().replace('"', '').replace("'", "").replace('R$', '').replace(' ', '')
+    # Remove pontos de milhar e troca vírgula decimal
     s = s.replace('.', '').replace(',', '.')
     try: return float(s)
     except: return 0.0
@@ -127,7 +135,7 @@ def clean_currency_br(x):
 def clean_percentage_br(x):
     if pd.isna(x) or x == "": return 0.0
     if isinstance(x, (int, float)): return float(x)
-    s = str(x).strip().replace('%', '').replace(',', '.')
+    s = str(x).strip().replace('"', '').replace('%', '').replace(',', '.')
     try: return float(s)
     except: return 0.0
 
@@ -142,7 +150,12 @@ def load_data():
         base_file = next((f for f in files if 'base' in f.lower() or 'dados' in f.lower()), None)
         
         if base_file:
-            df_base = pd.read_csv(base_file, encoding='utf-8', on_bad_lines='skip')
+            # Lê com encoding latin1 ou utf-8 dependendo do arquivo (utf-8 é padrão, mas latin1 é comum em excel BR)
+            try:
+                df_base = pd.read_csv(base_file, encoding='utf-8', on_bad_lines='skip')
+            except:
+                df_base = pd.read_csv(base_file, encoding='latin1', on_bad_lines='skip')
+                
             df_base.columns = df_base.columns.str.strip()
             
             col_map = {
@@ -171,13 +184,17 @@ def load_data():
         class_file = next((f for f in files if 'classificacao' in f.lower()), None)
         
         if class_file:
-            # Tenta ler pulando a primeira linha se ela for vazia (comum em exports de sistema)
+            # Tenta ler pulando a primeira linha se ela for vazia (comum no seu arquivo)
             try:
-                df_class = pd.read_csv(class_file, encoding='utf-8', on_bad_lines='skip', skiprows=1)
-                if 'Classificação' not in df_class.columns: # Se falhar, tenta sem skip
-                     df_class = pd.read_csv(class_file, encoding='utf-8', on_bad_lines='skip')
+                # Tenta ler normal primeiro
+                df_test = pd.read_csv(class_file, encoding='utf-8', on_bad_lines='skip', nrows=5)
+                if 'Classificação' in df_test.columns or 'Código' in df_test.columns:
+                    df_class = pd.read_csv(class_file, encoding='utf-8', on_bad_lines='skip')
+                else:
+                    # Se não achar header na linha 0, tenta skiprows=1 (padrão do seu arquivo)
+                    df_class = pd.read_csv(class_file, encoding='utf-8', on_bad_lines='skip', skiprows=1)
             except:
-                df_class = pd.read_csv(class_file, encoding='utf-8', on_bad_lines='skip')
+                df_class = pd.read_csv(class_file, encoding='latin1', on_bad_lines='skip', skiprows=1)
 
             df_class.columns = df_class.columns.str.strip()
             
@@ -200,10 +217,10 @@ def load_data():
             # Filtra linhas válidas
             if 'Hierarquia' in df_class.columns:
                 df_class = df_class.dropna(subset=['Hierarquia'])
-                
+                # Garante que hierarquia é string para contar pontos
+                df_class['Hierarquia'] = df_class['Hierarquia'].astype(str)
                 # Cria Nível baseado na hierarquia (ex: 1.10.100 -> Nível 3)
-                # Assumindo formato 1 ou 1.10 ou 1.10.100
-                df_class['Nivel'] = df_class['Hierarquia'].astype(str).apply(lambda x: x.count('.') + 1)
+                df_class['Nivel'] = df_class['Hierarquia'].apply(lambda x: x.count('.') + 1 if '.' in x else 1)
                 
             datasets['mix'] = df_class
     except Exception as e:
@@ -250,25 +267,18 @@ st.markdown(f"Visão consolidada • **{sel_mes}** • **{sel_loja}**")
 
 tab1, tab2, tab3 = st.tabs(["📊 Visão Executiva", "📦 Análise de Mix", "📋 Detalhes Operacionais"])
 
-# --- FUNÇÕES VISUAIS ---
-def card_metric(label, value, prefix="", suffix=""):
-    st.markdown(f"""
-    <div style="background: white; padding: 20px; border-radius: 12px; border: 1px solid #E5E7EB; text-align: left;">
-        <p style="color: #6B7280; font-size: 12px; font-weight: 600; text-transform: uppercase; margin: 0;">{label}</p>
-        <p style="color: #111827; font-size: 26px; font-weight: 700; margin: 5px 0 0 0;">{prefix}{value}{suffix}</p>
-    </div>
-    """, unsafe_allow_html=True)
-
 # --- TAB 1: EXECUTIVA ---
 with tab1:
     # 1. KPIs
     venda = df_filtered['Venda'].sum() if 'Venda' in df_filtered.columns else 0
     meta = df_filtered['Meta'].sum() if 'Meta' in df_filtered.columns else 0
     clientes = df_filtered['Clientes'].sum() if 'Clientes' in df_filtered.columns else 0
+    
+    # Tratamento para evitar Divisão por Zero
     ticket = venda / clientes if clientes > 0 else 0
     
     if 'Margem_Perc' in df_filtered.columns:
-        margem = df_filtered['Margem_Perc'].mean() # Média simples dos registros filtrados
+        margem = df_filtered['Margem_Perc'].mean() # Média simples
     else: margem = 0
 
     c1, c2, c3, c4 = st.columns(4)
@@ -305,24 +315,31 @@ with tab1:
             
     with col_g2:
         st.markdown("##### Atingimento Global")
+        # Tratamento para Divisão por Zero no Gauge
         perc = (venda / meta * 100) if meta > 0 else 0
+        perc_visual = min(perc, 999) # Trava visual para não quebrar se for absurdo
+        
         fig_gauge = go.Figure(go.Indicator(
-            mode="gauge+number", value=perc,
+            mode="gauge+number", value=perc_visual,
             number={'suffix': "%", 'font': {'size': 40}},
             gauge={'axis': {'range': [0, 120]}, 'bar': {'color': "#6750A4"}, 'steps': [{'range': [0, 100], 'color': "#EADDFF"}]}
         ))
         fig_gauge.update_layout(height=350, margin=dict(t=40,b=10))
         st.plotly_chart(fig_gauge, use_container_width=True)
 
-    # 3. LINHA 2 DE GRÁFICOS (DISTRIBUIÇÃO POR CATEGORIA - MOCKUP)
+    # 3. LINHA 2 DE GRÁFICOS (DISTRIBUIÇÃO POR CATEGORIA)
     col_g3, col_g4 = st.columns(2)
     
     with col_g3:
         st.markdown("##### Distribuição por Departamento (Top 5)")
+        # Usa base de MIX se existir
         if not df_mix.empty and 'Descricao' in df_mix.columns:
-            # Pega Nível 1 (Departamentos)
-            df_depto = df_mix[df_mix['Nivel'] == 1].copy()
-            if df_depto.empty: df_depto = df_mix.copy() # Fallback
+            # Pega Nível 1 (Departamentos). Se não achar Nível, pega top vendas geral.
+            if 'Nivel' in df_mix.columns:
+                df_depto = df_mix[df_mix['Nivel'] == 1].copy()
+                if df_depto.empty: df_depto = df_mix.copy()
+            else:
+                df_depto = df_mix.copy()
             
             df_depto = df_depto.sort_values('Venda', ascending=False).head(5)
             
@@ -331,7 +348,7 @@ with tab1:
             fig_donut.update_traces(textinfo='percent+label', textposition='inside')
             st.plotly_chart(fig_donut, use_container_width=True)
         else:
-            st.info("Carregue o arquivo 'classificacao_mercadologica.csv' para ver este gráfico.")
+            st.info("Gráfico requer arquivo 'classificacao_mercadologica.csv'")
             
     with col_g4:
         st.markdown("##### Ranking de Lojas")
@@ -345,7 +362,7 @@ with tab1:
 with tab2:
     if df_mix.empty:
         st.warning("⚠️ Arquivo de Classificação Mercadológica não encontrado.")
-        st.markdown("Faça o upload do arquivo **`classificacao_mercadologica.csv`** no GitHub.")
+        st.markdown("Faça o upload do arquivo **`classificacao_mercadologica.csv`** no GitHub para ver a análise de mix.")
     else:
         st.markdown("##### Árvore de Produtos (Bill of Materials)")
         st.caption("Navegue pela hierarquia: Departamento > Seção > Grupo > Subgrupo")
@@ -353,16 +370,15 @@ with tab2:
         # Filtros de visualização
         nivel_selecionado = st.slider("Explodir até o Nível:", 1, 4, 2)
         
-        # Filtra base
-        df_tree = df_mix[df_mix['Nivel'] == nivel_selecionado].copy()
+        # Filtra base por nível e elimina Vendas zero/negativas para o Treemap não quebrar
+        df_tree = df_mix[(df_mix['Nivel'] == nivel_selecionado) & (df_mix['Venda'] > 0)].copy()
         
-        # Se vazio (talvez a base só tenha itens finais), pega os top itens
         if df_tree.empty:
-            df_tree = df_mix.nlargest(100, 'Venda')
+            df_tree = df_mix[df_mix['Venda'] > 0].nlargest(100, 'Venda')
             
         fig_tree = px.treemap(
             df_tree,
-            path=['Descricao'], # Como o arquivo é flat, usamos a descrição. Se tivesse colunas pai/filho usariamos aqui.
+            path=['Descricao'],
             values='Venda',
             color='Venda',
             color_continuous_scale='Purples',
@@ -380,7 +396,11 @@ with tab3:
     st.markdown("##### Detalhamento Consolidado")
     if 'Loja' in df_filtered.columns:
         df_table = df_filtered.groupby('Loja')[['Venda', 'Meta', 'Clientes']].sum().reset_index()
-        df_table['Atingimento'] = (df_table['Venda'] / df_table['Meta']).fillna(0)
+        
+        # Cálculo Seguro do Atingimento
+        # Substitui Infinito por 0
+        df_table['Atingimento'] = (df_table['Venda'] / df_table['Meta'])
+        df_table['Atingimento'] = df_table['Atingimento'].replace([np.inf, -np.inf], 0).fillna(0)
         
         st.dataframe(
             df_table.style.format({'Venda': 'R$ {:,.2f}', 'Meta': 'R$ {:,.2f}', 'Clientes': '{:,.0f}', 'Atingimento': '{:.1%}'}),
