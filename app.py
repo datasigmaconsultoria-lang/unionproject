@@ -13,7 +13,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- ESTILIZAÇÃO CSS (BRANDBOOK DATA SIGMA) ---
+# --- ESTILIZAÇÃO CSS (UX & BRANDBOOK DATA SIGMA) ---
 st.markdown("""
 <style>
     /* Importando Fontes Google */
@@ -21,14 +21,10 @@ st.markdown("""
 
     /* Variáveis de Cor - Brandbook Data Sigma */
     :root {
-        /* Azul Institucional (Confiança/Tecnologia) */
         --sigma-blue: #0047AB; 
-        /* Verde Institucional (Eficiência/Meta) */
         --sigma-green: #00A859;
-        /* Gradiente da Marca */
         --sigma-gradient: linear-gradient(90deg, #0047AB 0%, #00A859 100%);
         
-        /* Cores Funcionais */
         --color-bg: #F4F6F9;
         --color-surface: #FFFFFF;
         --color-text-main: #1F2937;
@@ -48,6 +44,13 @@ st.markdown("""
     .stApp {
         background-color: var(--color-bg);
     }
+    
+    /* Ajuste de Padding Principal (Correção do Header Cortado) */
+    .block-container {
+        padding-top: 1.5rem !important; /* Mais espaço no topo */
+        padding-bottom: 3rem;
+        max-width: 100%;
+    }
 
     /* --- CABEÇALHO PERSONALIZADO --- */
     .header-sigma {
@@ -55,10 +58,10 @@ st.markdown("""
         justify_content: space-between;
         align-items: center;
         background: var(--color-surface);
-        padding: 1rem 2rem;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-        margin-bottom: 2rem;
+        padding: 1.2rem 2rem;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        margin-bottom: 1.5rem;
         border-bottom: 3px solid transparent;
         border-image: var(--sigma-gradient);
         border-image-slice: 1;
@@ -66,7 +69,7 @@ st.markdown("""
     
     .header-logo-left {
         font-weight: 800;
-        font-size: 20px;
+        font-size: 22px;
         background: var(--sigma-gradient);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
@@ -74,97 +77,127 @@ st.markdown("""
     }
     
     .header-title {
-        font-size: 16px;
+        font-size: 14px;
         color: var(--color-text-light);
         text-transform: uppercase;
-        letter-spacing: 2px;
-        font-weight: 500;
+        letter-spacing: 1.5px;
+        font-weight: 600;
+        text-align: center;
     }
 
     .header-logo-right {
         font-weight: 700;
         color: var(--color-text-main);
+        font-size: 16px;
+    }
+
+    /* Mobile Header Fix */
+    @media (max-width: 768px) {
+        .header-sigma {
+            flex-direction: column;
+            gap: 10px;
+            text-align: center;
+        }
     }
 
     /* CARDS (Big Numbers) */
     div[data-testid="metric-container"] {
         background-color: var(--color-surface);
-        padding: 24px;
+        padding: 20px;
         border-radius: 12px;
         border: 1px solid var(--color-border);
-        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-        border-left: 4px solid var(--sigma-blue); /* Identidade Data Sigma */
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        border-left: 4px solid var(--sigma-blue);
         transition: transform 0.2s ease;
+        height: 100%; /* Altura consistente */
     }
     
     div[data-testid="metric-container"]:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        transform: translateY(-3px);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.08);
     }
 
     div[data-testid="metric-container"] label {
-        font-size: 12px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        color: var(--color-text-light);
+        font-size: 13px !important;
+        font-weight: 600 !important;
+        color: var(--color-text-light) !important;
     }
     
     div[data-testid="metric-container"] div[data-testid="stMetricValue"] {
-        font-size: 28px;
-        font-weight: 700;
-        color: var(--color-text-main);
+        font-size: 26px !important;
+        font-weight: 700 !important;
+        color: var(--color-text-main) !important;
     }
 
-    /* Sidebar */
+    /* Sidebar Styling */
     section[data-testid="stSidebar"] {
         background-color: var(--color-surface);
         border-right: 1px solid var(--color-border);
     }
     
-    /* Headers Nativos */
-    h1, h2, h3, h4, h5 {
-        color: var(--color-text-main);
-        font-weight: 700;
-        font-family: 'Roboto', sans-serif;
+    section[data-testid="stSidebar"] .block-container {
+        padding-top: 2rem !important;
+    }
+
+    /* Inputs e Selectboxes (UX Melhorada) */
+    .stSelectbox div[data-baseweb="select"] {
+        border-radius: 8px;
+        border: 1px solid var(--color-border);
+        min-height: 45px; /* Altura de toque maior */
     }
     
-    h5 {
-        border-left: 4px solid var(--sigma-green);
-        padding-left: 10px;
-        margin-bottom: 20px;
+    .stSelectbox div[data-baseweb="select"]:hover {
+        border-color: var(--sigma-blue);
+    }
+
+    /* Botões */
+    .stButton button {
+        background: var(--sigma-blue);
+        color: white;
+        border-radius: 8px;
+        border: none;
+        height: 45px;
+        font-weight: 600;
+        transition: all 0.3s;
+        width: 100%;
+    }
+    
+    .stButton button:hover {
+        background: var(--sigma-green);
+        box-shadow: 0 4px 10px rgba(0, 168, 89, 0.3);
     }
 
     /* Tabs (Abas) */
     .stTabs [data-baseweb="tab-list"] {
         gap: 8px;
-        background-color: transparent;
-        padding-bottom: 10px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--color-border);
+        margin-bottom: 20px;
     }
     
     .stTabs [data-baseweb="tab"] {
-        height: 40px;
-        border-radius: 6px;
+        height: 42px;
+        border-radius: 8px;
         background-color: white;
         border: 1px solid var(--color-border);
         color: var(--color-text-light);
         font-weight: 500;
         font-size: 14px;
-        transition: all 0.3s;
+        padding: 0 24px;
     }
 
     .stTabs [aria-selected="true"] {
         background: var(--sigma-gradient);
         color: white;
         border: none;
-        font-weight: 600;
+        box-shadow: 0 2px 6px rgba(0, 71, 171, 0.3);
+    }
+    
+    /* Remover fundo branco padrão dos gráficos Plotly se houver container extra */
+    .js-plotly-plot .plotly .main-svg {
+        background: transparent !important;
     }
 
-    /* Ajuste de Padding */
-    .block-container {
-        padding-top: 1rem;
-        padding-bottom: 3rem;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -270,7 +303,7 @@ if df.empty:
     st.warning("⚠️ Arquivo 'base.csv' não encontrado ou vazio. Faça upload no GitHub.")
     st.stop()
 
-# --- SIDEBAR (Brandbook: O Sábio - Clean & Professional) ---
+# --- SIDEBAR ---
 st.sidebar.markdown("### 🔍 Filtros de Análise")
 st.sidebar.markdown("---")
 
@@ -289,7 +322,7 @@ if 'Loja' in df.columns:
     sel_loja = st.sidebar.selectbox("Unidade de Negócio", ['Todas'] + lojas)
 
 st.sidebar.markdown("---")
-st.sidebar.info("**Nota Data Sigma:** Os dados são atualizados conforme o processamento do pipeline ETL.")
+st.sidebar.info("**Nota Data Sigma:** Dados processados via Pipeline ETL.")
 
 # Aplica Filtros
 df_filtered = df.copy()
@@ -310,7 +343,20 @@ COLOR_BLUE = "#0047AB" # Azul Sigma
 COLOR_GREEN = "#00A859" # Verde Sigma
 COLOR_ALERT = "#EF4444" # Vermelho Alerta
 COLOR_NEUTRAL = "#E5E7EB" # Cinza Neutro
+COLOR_TEXT = "#1F2937"
 COLOR_GRADIENT = ["#0047AB", "#006494", "#00817D", "#009C65", "#00A859"] # Gradiente Data Sigma
+
+# Configuração global de layout para gráficos transparentes
+def update_fig_layout(fig):
+    fig.update_layout(
+        paper_bgcolor='rgba(0,0,0,0)', # Transparente
+        plot_bgcolor='rgba(0,0,0,0)',  # Transparente
+        font={'color': COLOR_TEXT, 'family': 'Roboto'},
+        margin=dict(l=10, r=10, t=30, b=10),
+        xaxis=dict(showgrid=False, zeroline=False),
+        yaxis=dict(showgrid=True, gridcolor='rgba(0,0,0,0.05)', zeroline=False),
+    )
+    return fig
 
 tab1, tab2, tab3 = st.tabs(["📊 Visão Executiva", "📦 Análise de Mix", "📋 Detalhes Operacionais"])
 
@@ -328,7 +374,6 @@ with tab1:
 
     c1, c2, c3, c4 = st.columns(4)
     
-    # Formatação limpa
     with c1: st.metric("Venda Total", f"R$ {venda:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
     with c2: st.metric("Margem", f"{margem:.1f}%")
     with c3: st.metric("Ticket Médio", f"R$ {ticket:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
@@ -340,7 +385,7 @@ with tab1:
     col_g1, col_g2 = st.columns([2, 1])
     
     with col_g1:
-        st.markdown("##### Evolução vs Metas")
+        st.markdown("##### 📈 Evolução vs Metas")
         if 'Mes' in df_filtered.columns:
             idx_col = 'Mes' if sel_mes == 'Todos' else 'Loja'
             df_chart = df_filtered.groupby(idx_col)[['Venda', 'Meta']].sum().reset_index()
@@ -352,54 +397,52 @@ with tab1:
                 df_chart = df_chart.sort_values('Venda', ascending=False)
 
             fig = go.Figure()
-            # Azul para Realizado (Dado neutro/informativo)
+            # Azul para Realizado
             fig.add_trace(go.Bar(
                 x=df_chart[idx_col], y=df_chart['Venda'], 
                 name='Realizado', 
-                marker_color=COLOR_BLUE
+                marker_color=COLOR_BLUE,
+                opacity=0.9
             ))
-            # Verde para Meta (Objetivo)
+            # Verde para Meta
             fig.add_trace(go.Scatter(
                 x=df_chart[idx_col], y=df_chart['Meta'], 
                 name='Meta', 
                 mode='lines+markers', 
-                line=dict(color=COLOR_GREEN, width=3)
+                line=dict(color=COLOR_GREEN, width=3),
+                marker=dict(size=6, color='white', line=dict(width=2, color=COLOR_GREEN))
             ))
             
-            fig.update_layout(
-                height=350, margin=dict(l=0,r=0,t=30,b=0), 
-                legend=dict(orientation="h", y=1.1), 
-                plot_bgcolor='white', 
-                yaxis=dict(showgrid=True, gridcolor=COLOR_NEUTRAL)
-            )
+            fig = update_fig_layout(fig)
+            fig.update_layout(height=320, legend=dict(orientation="h", y=1.1, x=1, xanchor='right'))
             st.plotly_chart(fig, use_container_width=True)
             
     with col_g2:
-        st.markdown("##### Atingimento Global")
+        st.markdown("##### 🎯 Atingimento Global")
         perc = (venda / meta * 100) if meta > 0 else 0
         perc_visual = min(perc, 999)
         
-        # Cor do Gauge dinâmica: Verde se bateu meta, Azul se está ok, Vermelho se crítico
         gauge_color = COLOR_GREEN if perc >= 100 else (COLOR_BLUE if perc >= 80 else COLOR_ALERT)
 
         fig_gauge = go.Figure(go.Indicator(
             mode="gauge+number", value=perc_visual,
-            number={'suffix': "%", 'font': {'size': 40, 'family': 'Roboto', 'color': "#1F2937"}},
+            number={'suffix': "%", 'font': {'size': 36, 'family': 'Roboto', 'color': COLOR_TEXT}},
             gauge={
                 'axis': {'range': [0, 120]}, 
                 'bar': {'color': gauge_color}, 
-                'steps': [{'range': [0, 100], 'color': "#F3F4F6"}],
+                'steps': [{'range': [0, 100], 'color': "rgba(200, 200, 200, 0.2)"}], # Fundo do arco mais suave
                 'threshold': {'line': {'color': COLOR_GREEN, 'width': 4}, 'thickness': 0.75, 'value': 100}
             }
         ))
-        fig_gauge.update_layout(height=350, margin=dict(t=40,b=10))
+        fig_gauge = update_fig_layout(fig_gauge)
+        fig_gauge.update_layout(height=320, margin=dict(t=40,b=20))
         st.plotly_chart(fig_gauge, use_container_width=True)
 
     # 3. LINHA 2 DE GRÁFICOS
     col_g3, col_g4 = st.columns(2)
     
     with col_g3:
-        st.markdown("##### Distribuição por Departamento (Top 5)")
+        st.markdown("##### 🍰 Distribuição por Departamento (Top 5)")
         if not df_mix.empty and 'Descricao' in df_mix.columns:
             if 'Nivel' in df_mix.columns:
                 df_depto = df_mix[df_mix['Nivel'] == 1].copy()
@@ -409,29 +452,27 @@ with tab1:
             
             df_depto = df_depto.sort_values('Venda', ascending=False).head(5)
             
-            # Cores sequenciais do brandbook
             fig_donut = px.pie(
                 df_depto, values='Venda', names='Descricao', hole=0.6, 
                 color_discrete_sequence=COLOR_GRADIENT
             )
-            fig_donut.update_layout(height=350, margin=dict(t=0,b=0,l=0,r=0), showlegend=True)
+            fig_donut = update_fig_layout(fig_donut)
+            fig_donut.update_layout(height=320, margin=dict(t=0,b=0,l=0,r=0), showlegend=True)
             fig_donut.update_traces(textinfo='percent+label', textposition='inside')
             st.plotly_chart(fig_donut, use_container_width=True)
         else:
             st.info("Aguardando arquivo de Classificação Mercadológica.")
             
     with col_g4:
-        st.markdown("##### Ranking de Lojas")
+        st.markdown("##### 🏆 Ranking de Lojas")
         if 'Loja' in df_filtered.columns:
             df_rank = df_filtered.groupby('Loja')['Venda'].sum().sort_values(ascending=True).reset_index()
             fig_bar = px.bar(
                 df_rank, x='Venda', y='Loja', orientation='h', 
                 text_auto='.2s', color_discrete_sequence=[COLOR_BLUE]
             )
-            fig_bar.update_layout(
-                height=350, margin=dict(l=0,r=0,t=0,b=0), 
-                xaxis=dict(showgrid=False), plot_bgcolor='white'
-            )
+            fig_bar = update_fig_layout(fig_bar)
+            fig_bar.update_layout(height=320, xaxis=dict(showgrid=False))
             st.plotly_chart(fig_bar, use_container_width=True)
 
 # --- TAB 2: MIX ---
@@ -439,7 +480,7 @@ with tab2:
     if df_mix.empty:
         st.warning("⚠️ Arquivo de Classificação Mercadológica não encontrado.")
     else:
-        st.markdown("##### Árvore de Produtos (Bill of Materials)")
+        st.markdown("##### 🌳 Árvore de Produtos (Bill of Materials)")
         st.caption("Visão hierárquica do portfólio de produtos.")
         
         nivel_selecionado = st.slider("Nível de Detalhe:", 1, 4, 2)
@@ -453,10 +494,11 @@ with tab2:
             path=['Descricao'],
             values='Venda',
             color='Venda',
-            color_continuous_scale='Blues', # Escala Azul
+            color_continuous_scale='Blues',
             hover_data=['Hierarquia', 'Part']
         )
         fig_tree.update_traces(textinfo="label+value+percent entry")
+        fig_tree = update_fig_layout(fig_tree)
         fig_tree.update_layout(height=600, margin=dict(t=0, l=0, r=0, b=0))
         st.plotly_chart(fig_tree, use_container_width=True)
         
@@ -465,7 +507,7 @@ with tab2:
 
 # --- TAB 3: DETALHES ---
 with tab3:
-    st.markdown("##### Detalhamento Operacional")
+    st.markdown("##### 📋 Detalhamento Operacional")
     if 'Loja' in df_filtered.columns:
         df_table = df_filtered.groupby('Loja')[['Venda', 'Meta', 'Clientes']].sum().reset_index()
         df_table['Atingimento'] = (df_table['Venda'] / df_table['Meta'])
