@@ -2,385 +2,392 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import numpy as np
 import os
 
-# --- CONFIGURAÇÃO DA PÁGINA ---
+# --- CONFIGURAÇÃO DA PÁGINA (WIDE & M3 TITLE) ---
 st.set_page_config(
     layout="wide", 
-    page_title="Larissa Supermercados - Union", 
-    initial_sidebar_state="expanded",
-    page_icon="🛒"
+    page_title="Union | Larissa Supermercados", 
+    page_icon="🛍️",
+    initial_sidebar_state="expanded"
 )
 
-# --- ESTILIZAÇÃO CSS (GOOGLE MATERIAL 3 - M3) ---
+# --- ESTILIZAÇÃO CSS AVANÇADA (GOOGLE MATERIAL 3) ---
 st.markdown("""
 <style>
-    /* Importando fonte Roboto (Google Fonts) */
-    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+    /* Importando Fontes Google */
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
 
-    /* Reset básico e Fonte */
+    /* Variáveis de Cor M3 */
+    :root {
+        --md-sys-color-primary: #6750A4;
+        --md-sys-color-on-primary: #FFFFFF;
+        --md-sys-color-surface: #F3F4F6;
+        --md-sys-color-surface-container: #FFFFFF;
+        --md-sys-color-on-surface: #1C1B1F;
+        --md-sys-color-outline: #E0E3E7;
+    }
+
+    /* Reset Geral */
     html, body, [class*="css"] {
         font-family: 'Roboto', sans-serif;
+        color: var(--md-sys-color-on-surface);
+        background-color: var(--md-sys-color-surface);
     }
 
-    /* Fundo Geral (M3 Surface) */
+    /* Fundo do App */
     .stApp {
-        background-color: #F7F9FC; /* Azul acinzentado muito claro */
+        background-color: #F0F2F5;
     }
 
-    /* Cards de KPI (M3 Elevation + Rounded) */
+    /* CARDS (Big Numbers) */
     div[data-testid="metric-container"] {
         background-color: #FFFFFF;
         padding: 24px;
-        border-radius: 24px; /* M3 Rounded Corners */
-        box-shadow: 0 4px 8px rgba(0,0,0,0.02); /* Sombra suave */
-        border: 1px solid #E0E3E7;
-        transition: transform 0.2s ease;
+        border-radius: 16px;
+        border: 1px solid #E5E7EB;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        height: 100%;
     }
     
     div[data-testid="metric-container"]:hover {
+        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
         transform: translateY(-2px);
-        box-shadow: 0 6px 12px rgba(0,0,0,0.05);
     }
 
-    /* Texto do Label da Métrica */
     div[data-testid="metric-container"] label {
-        font-size: 14px;
-        color: #444746; /* M3 OnSurfaceVariant */
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    /* Valor da Métrica */
-    div[data-testid="metric-container"] div[data-testid="stMetricValue"] {
-        font-size: 32px;
-        color: #1F1F1F; /* M3 OnSurface */
-        font-weight: 700;
-    }
-
-    /* Delta (Variação) */
-    div[data-testid="stMetricDelta"] {
-        background-color: #F2F6FC;
-        padding: 4px 8px;
-        border-radius: 16px;
-        font-size: 12px;
+        font-size: 13px;
         font-weight: 600;
-    }
-
-    /* Ajuste do Sidebar */
-    section[data-testid="stSidebar"] {
-        background-color: #FFFFFF;
-        border-right: 1px solid #E0E3E7;
-    }
-
-    /* Títulos */
-    h1, h2, h3 {
-        color: #001D35; /* Azul profundo */
-        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        color: #6B7280;
     }
     
-    /* Remover padding excessivo do topo */
+    div[data-testid="metric-container"] div[data-testid="stMetricValue"] {
+        font-size: 28px;
+        font-weight: 700;
+        color: #111827;
+        margin-top: 4px;
+    }
+
+    /* Sidebar Customizada */
+    section[data-testid="stSidebar"] {
+        background-color: #FFFFFF;
+        border-right: 1px solid #E5E7EB;
+    }
+    
+    /* Headers */
+    h1, h2, h3 {
+        color: #111827;
+        font-weight: 700;
+        letter-spacing: -0.025em;
+    }
+
+    /* Tabs (Abas) */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+        background-color: transparent;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        height: 40px;
+        border-radius: 20px;
+        background-color: #FFFFFF;
+        border: 1px solid #E5E7EB;
+        padding: 0 24px;
+        font-weight: 500;
+        font-size: 14px;
+    }
+
+    .stTabs [aria-selected="true"] {
+        background-color: var(--md-sys-color-primary);
+        color: #FFFFFF;
+        border: none;
+    }
+
+    /* Ajuste de Padding */
     .block-container {
         padding-top: 2rem;
-        padding-bottom: 2rem;
+        padding-bottom: 3rem;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# --- FUNÇÕES DE LIMPEZA E TRATAMENTO ---
-def clean_currency(x):
-    """Limpeza robusta para valores monetários com aspas, espaços e símbolos"""
-    if isinstance(x, (int, float)):
-        return float(x)
-        
-    if isinstance(x, str):
-        # Remove aspas extras que podem vir do CSV
-        clean_str = x.replace('"', '').replace("'", "")
-        # Remove R$, espaços e pontos de milhar
-        clean_str = clean_str.replace('R$', '').replace('.', '').replace(' ', '').strip()
-        # Troca vírgula decimal por ponto
-        clean_str = clean_str.replace(',', '.')
-        
-        # Se string vazia, retorna 0
-        if not clean_str:
-            return 0.0
-            
-        try:
-            return float(clean_str)
-        except ValueError:
-            return 0.0
-    return 0.0
+# --- FUNÇÕES DE LIMPEZA ROBUSTAS ---
+def clean_currency_br(x):
+    if pd.isna(x) or x == "": return 0.0
+    if isinstance(x, (int, float)): return float(x)
+    s = str(x).strip().replace('R$', '').replace(' ', '')
+    s = s.replace('.', '').replace(',', '.')
+    try: return float(s)
+    except: return 0.0
 
-def clean_percentage(x):
-    """Limpeza robusta para porcentagens"""
-    if isinstance(x, (int, float)):
-        return float(x)
-        
-    if isinstance(x, str):
-        clean_str = x.replace('"', '').replace('%', '').replace(',', '.').strip()
-        try:
-            return float(clean_str)
-        except ValueError:
-            return 0.0
-    return 0.0
+def clean_percentage_br(x):
+    if pd.isna(x) or x == "": return 0.0
+    if isinstance(x, (int, float)): return float(x)
+    s = str(x).strip().replace('%', '').replace(',', '.')
+    try: return float(s)
+    except: return 0.0
 
 # --- CARREGAMENTO DE DADOS ---
 @st.cache_data
 def load_data():
+    datasets = {}
+    
+    # 1. BASE GERAL (VENDAS/METAS)
     try:
-        # Busca automática do CSV
-        arquivos_csv = [f for f in os.listdir('.') if f.endswith('.csv') or f.endswith('.CSV')]
+        files = [f for f in os.listdir('.') if f.endswith('.csv') or f.endswith('.CSV')]
+        base_file = next((f for f in files if 'base' in f.lower() or 'dados' in f.lower()), None)
         
-        if not arquivos_csv:
-            st.error("❌ Nenhum arquivo CSV encontrado.")
-            st.stop()
+        if base_file:
+            df_base = pd.read_csv(base_file, encoding='utf-8', on_bad_lines='skip')
+            df_base.columns = df_base.columns.str.strip()
             
-        # Prioriza arquivos com 'base' ou 'dados' no nome
-        arquivo_alvo = arquivos_csv[0]
-        for f in arquivos_csv:
-            if 'base' in f.lower() or 'dados' in f.lower():
-                arquivo_alvo = f
-                break
+            col_map = {
+                'Venda 2022 R$': 'Venda', 'Meta Venda 2022': 'Meta',
+                'Margem Bruta 2022 %': 'Margem_Perc', 'Qtd de cupom 2022': 'Clientes',
+                'NOME LOJA': 'Loja', 'MÊS': 'Mes'
+            }
+            cols_found = {}
+            for k, v in col_map.items():
+                match = next((c for c in df_base.columns if k.lower() in c.lower()), None)
+                if match: cols_found[match] = v
+            
+            df_base = df_base.rename(columns=cols_found)
+            for col in ['Venda', 'Meta', 'Clientes']:
+                if col in df_base.columns: df_base[col] = df_base[col].apply(clean_currency_br)
+            if 'Margem_Perc' in df_base.columns:
+                df_base['Margem_Perc'] = df_base['Margem_Perc'].apply(clean_percentage_br)
                 
-        # Lê o CSV ignorando linhas ruins
-        df = pd.read_csv(arquivo_alvo, on_bad_lines='skip')
-        
-        # 1. Normalização dos nomes das colunas
-        df.columns = df.columns.str.strip()
-        
-        # 2. Mapeamento flexível das colunas essenciais
-        col_map = {
-            'Venda 2022 R$': 'Venda',
-            'Meta Venda 2022': 'Meta',
-            'Margem Bruta 2022 %': 'Margem_Percent',
-            'Qtd de cupom 2022': 'Clientes',
-            'NOME LOJA': 'Loja',
-            'MÊS': 'Mes'
-        }
-        
-        # Tenta encontrar as colunas
-        cols_found = {}
-        for key, target in col_map.items():
-            # Busca exata
-            if key in df.columns:
-                cols_found[key] = target
-            else:
-                # Busca aproximada (case insensitive)
-                for col_original in df.columns:
-                    if key.lower() in col_original.lower():
-                        cols_found[col_original] = target
-                        break
-        
-        if not cols_found:
-            st.warning("Colunas não identificadas automaticamente. Verifique o CSV.")
-            return pd.DataFrame() # Retorna vazio para não quebrar
-            
-        df = df.rename(columns=cols_found)
-        
-        # 3. Conversão de Tipos (Crucial para evitar ValueError)
-        cols_numericas = ['Venda', 'Meta', 'Clientes']
-        for col in cols_numericas:
-            if col in df.columns:
-                df[col] = df[col].apply(clean_currency)
-                # Garante que não tem NaN ou Infinito
-                df[col] = df[col].fillna(0)
-
-        if 'Margem_Percent' in df.columns:
-            df['Margem_Percent'] = df['Margem_Percent'].apply(clean_percentage)
-            df['Margem_Percent'] = df['Margem_Percent'].fillna(0)
-            
-        # Filtra apenas dados válidos de venda
-        df = df[df['Venda'] > 0]
-        
-        return df
-        
+            datasets['base'] = df_base
     except Exception as e:
-        st.error(f"Erro crítico no carregamento: {e}")
-        st.stop()
+        st.error(f"Erro base principal: {e}")
 
-df = load_data()
+    # 2. CLASSIFICAÇÃO MERCADOLÓGICA (NOVA)
+    try:
+        # Procura arquivo que tenha 'classificacao' no nome
+        class_file = next((f for f in files if 'classificacao' in f.lower()), None)
+        
+        if class_file:
+            # Tenta ler pulando a primeira linha se ela for vazia (comum em exports de sistema)
+            try:
+                df_class = pd.read_csv(class_file, encoding='utf-8', on_bad_lines='skip', skiprows=1)
+                if 'Classificação' not in df_class.columns: # Se falhar, tenta sem skip
+                     df_class = pd.read_csv(class_file, encoding='utf-8', on_bad_lines='skip')
+            except:
+                df_class = pd.read_csv(class_file, encoding='utf-8', on_bad_lines='skip')
 
-# --- SIDEBAR (FILTROS UX MELHORADA) ---
-st.sidebar.markdown("### Filtros")
+            df_class.columns = df_class.columns.str.strip()
+            
+            # Mapeamento
+            class_map = {
+                'Classificação': 'Hierarquia', 'Grupo': 'Descricao', 
+                'Valor': 'Venda', '% Partic': 'Part', '% Lucro': 'Lucro'
+            }
+            cols_found = {}
+            for k, v in class_map.items():
+                match = next((c for c in df_class.columns if k.lower() in c.lower()), None)
+                if match: cols_found[match] = v
+            
+            df_class = df_class.rename(columns=cols_found)
+            
+            # Limpeza Numérica
+            if 'Venda' in df_class.columns:
+                df_class['Venda'] = df_class['Venda'].apply(clean_currency_br)
+            
+            # Filtra linhas válidas
+            if 'Hierarquia' in df_class.columns:
+                df_class = df_class.dropna(subset=['Hierarquia'])
+                
+                # Cria Nível baseado na hierarquia (ex: 1.10.100 -> Nível 3)
+                # Assumindo formato 1 ou 1.10 ou 1.10.100
+                df_class['Nivel'] = df_class['Hierarquia'].astype(str).apply(lambda x: x.count('.') + 1)
+                
+            datasets['mix'] = df_class
+    except Exception as e:
+        # Apenas loga no console para não assustar o user se não tiver o arquivo ainda
+        print(f"Erro classificacao: {e}")
 
-# 1. Filtro de Mês (Dropdown único com opção 'Todos')
-if 'Mes' in df.columns:
-    meses_disponiveis = df['Mes'].unique()
-    # Ordem cronológica
-    ordem_meses = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ']
-    # Ordena apenas os meses presentes nos dados
-    meses_ordenados = sorted([m for m in meses_disponiveis if m in ordem_meses], key=lambda x: ordem_meses.index(x))
-    
-    # Adiciona opção 'Todos' no início
-    opcoes_mes = ['Todos'] + meses_ordenados
-    
-    mes_selecionado = st.sidebar.selectbox("Selecione o Mês", options=opcoes_mes)
-else:
-    mes_selecionado = 'Todos'
+    return datasets
 
-# 2. Filtro de Loja (Dropdown único com opção 'Todas')
-if 'Loja' in df.columns:
-    lojas_disponiveis = sorted(df['Loja'].unique().astype(str))
-    opcoes_loja = ['Todas'] + lojas_disponiveis
-    loja_selecionada = st.sidebar.selectbox("Selecione a Loja", options=opcoes_loja)
-else:
-    loja_selecionada = 'Todas'
+data = load_data()
+df = data.get('base', pd.DataFrame())
+df_mix = data.get('mix', pd.DataFrame())
 
-# --- APLICAÇÃO DOS FILTROS ---
-df_filtered = df.copy()
-
-if mes_selecionado != 'Todos':
-    df_filtered = df_filtered[df_filtered['Mes'] == mes_selecionado]
-
-if loja_selecionada != 'Todas':
-    df_filtered = df_filtered[df_filtered['Loja'] == loja_selecionada]
-
-# --- VERIFICAÇÃO DE DADOS APÓS FILTRO ---
-if df_filtered.empty:
-    st.warning("Nenhum dado encontrado para os filtros selecionados.")
+if df.empty:
+    st.warning("⚠️ Arquivo 'base.csv' não encontrado ou vazio. Faça upload no GitHub.")
     st.stop()
 
-# --- CÁLCULOS KPI ---
-venda_total = df_filtered['Venda'].sum()
-meta_total = df_filtered['Meta'].sum()
-margem_media = df_filtered['Margem_Percent'].mean()
-clientes_total = df_filtered['Clientes'].sum()
-ticket_medio = venda_total / clientes_total if clientes_total > 0 else 0
+# --- SIDEBAR ---
+st.sidebar.image("https://cdn-icons-png.flaticon.com/512/3144/3144456.png", width=60)
+st.sidebar.markdown("### Filtros Globais")
 
-# --- HEADER PRINCIPAL ---
-st.title("Larissa Supermercados")
-st.markdown(f"**Visão Gerencial Union** • {mes_selecionado if mes_selecionado != 'Todos' else 'Ano 2022'} • {loja_selecionada}")
-st.markdown("---")
+# Filtros
+sel_mes = 'Todos'
+sel_loja = 'Todas'
 
-# --- KPI CARDS (Big Numbers) ---
-c1, c2, c3, c4 = st.columns(4)
+if 'Mes' in df.columns:
+    meses_unicos = df['Mes'].unique()
+    ordem_meses = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ']
+    meses_sorted = sorted([m for m in meses_unicos if isinstance(m, str)], 
+                          key=lambda x: ordem_meses.index(x.upper()) if x.upper() in ordem_meses else 99)
+    sel_mes = st.sidebar.selectbox("Mês", ['Todos'] + meses_sorted)
 
-def formata_moeda(valor):
-    return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+if 'Loja' in df.columns:
+    lojas = sorted([l for l in df['Loja'].unique() if isinstance(l, str)])
+    sel_loja = st.sidebar.selectbox("Loja", ['Todas'] + lojas)
 
-def formata_numero(valor):
-    return f"{valor:,.0f}".replace(",", ".")
+# Aplica Filtros
+df_filtered = df.copy()
+if sel_mes != 'Todos': df_filtered = df_filtered[df_filtered['Mes'] == sel_mes]
+if sel_loja != 'Todas': df_filtered = df_filtered[df_filtered['Loja'] == sel_loja]
 
-with c1:
-    st.metric("Venda Total", formata_moeda(venda_total))
-with c2:
-    st.metric("Margem Média", f"{margem_media:.2f}%")
-with c3:
-    st.metric("Ticket Médio", formata_moeda(ticket_medio))
-with c4:
-    st.metric("Clientes", formata_numero(clientes_total))
+# --- APP ---
+st.title("Union | Analytics")
+st.markdown(f"Visão consolidada • **{sel_mes}** • **{sel_loja}**")
 
-st.markdown("###") # Espaçamento
+tab1, tab2, tab3 = st.tabs(["📊 Visão Executiva", "📦 Análise de Mix", "📋 Detalhes Operacionais"])
 
-# --- GRÁFICOS ---
-col_charts_1, col_charts_2 = st.columns([2, 1])
+# --- FUNÇÕES VISUAIS ---
+def card_metric(label, value, prefix="", suffix=""):
+    st.markdown(f"""
+    <div style="background: white; padding: 20px; border-radius: 12px; border: 1px solid #E5E7EB; text-align: left;">
+        <p style="color: #6B7280; font-size: 12px; font-weight: 600; text-transform: uppercase; margin: 0;">{label}</p>
+        <p style="color: #111827; font-size: 26px; font-weight: 700; margin: 5px 0 0 0;">{prefix}{value}{suffix}</p>
+    </div>
+    """, unsafe_allow_html=True)
 
-# 1. Gráfico de Evolução (Material Design Style)
-with col_charts_1:
-    st.subheader("Evolução Mensal")
+# --- TAB 1: EXECUTIVA ---
+with tab1:
+    # 1. KPIs
+    venda = df_filtered['Venda'].sum() if 'Venda' in df_filtered.columns else 0
+    meta = df_filtered['Meta'].sum() if 'Meta' in df_filtered.columns else 0
+    clientes = df_filtered['Clientes'].sum() if 'Clientes' in df_filtered.columns else 0
+    ticket = venda / clientes if clientes > 0 else 0
     
-    if 'Mes' in df_filtered.columns:
-        df_chart = df_filtered.groupby('Mes')[['Venda', 'Meta']].sum().reset_index()
-        # Reordena
-        df_chart['Mes'] = pd.Categorical(df_chart['Mes'], categories=ordem_meses, ordered=True)
-        df_chart = df_chart.sort_values('Mes')
-        
-        fig = go.Figure()
-        
-        # Barras arredondadas (Venda)
-        fig.add_trace(go.Bar(
-            x=df_chart['Mes'], y=df_chart['Venda'],
-            name='Venda',
-            marker_color='#6750A4', # M3 Primary Purple
-            marker_pattern_shape="", 
-            width=0.5
+    if 'Margem_Perc' in df_filtered.columns:
+        margem = df_filtered['Margem_Perc'].mean() # Média simples dos registros filtrados
+    else: margem = 0
+
+    c1, c2, c3, c4 = st.columns(4)
+    with c1: st.metric("Venda Total", f"R$ {venda:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+    with c2: st.metric("Margem", f"{margem:.1f}%")
+    with c3: st.metric("Ticket Médio", f"R$ {ticket:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+    with c4: st.metric("Clientes", f"{clientes:,.0f}".replace(",", "."))
+    
+    st.markdown("###")
+
+    # 2. LINHA 1 DE GRÁFICOS
+    col_g1, col_g2 = st.columns([2, 1])
+    
+    with col_g1:
+        st.markdown("##### Evolução vs Metas")
+        if 'Mes' in df_filtered.columns:
+            # Prepara dados
+            idx_col = 'Mes' if sel_mes == 'Todos' else 'Loja'
+            df_chart = df_filtered.groupby(idx_col)[['Venda', 'Meta']].sum().reset_index()
+            
+            # Ordenação Temporal se for Mês
+            if idx_col == 'Mes':
+                df_chart['sort'] = df_chart['Mes'].apply(lambda x: ordem_meses.index(x.upper()) if x.upper() in ordem_meses else 99)
+                df_chart = df_chart.sort_values('sort')
+            else:
+                df_chart = df_chart.sort_values('Venda', ascending=False)
+
+            fig = go.Figure()
+            fig.add_trace(go.Bar(x=df_chart[idx_col], y=df_chart['Venda'], name='Realizado', marker_color='#6750A4', radius=5))
+            fig.add_trace(go.Scatter(x=df_chart[idx_col], y=df_chart['Meta'], name='Meta', mode='lines+markers', line=dict(color='#00C853', width=3)))
+            
+            fig.update_layout(height=350, margin=dict(l=0,r=0,t=30,b=0), legend=dict(orientation="h", y=1.1), plot_bgcolor='white', yaxis=dict(showgrid=True, gridcolor='#F3F4F6'))
+            st.plotly_chart(fig, use_container_width=True)
+            
+    with col_g2:
+        st.markdown("##### Atingimento Global")
+        perc = (venda / meta * 100) if meta > 0 else 0
+        fig_gauge = go.Figure(go.Indicator(
+            mode="gauge+number", value=perc,
+            number={'suffix': "%", 'font': {'size': 40}},
+            gauge={'axis': {'range': [0, 120]}, 'bar': {'color': "#6750A4"}, 'steps': [{'range': [0, 100], 'color': "#EADDFF"}]}
         ))
+        fig_gauge.update_layout(height=350, margin=dict(t=40,b=10))
+        st.plotly_chart(fig_gauge, use_container_width=True)
+
+    # 3. LINHA 2 DE GRÁFICOS (DISTRIBUIÇÃO POR CATEGORIA - MOCKUP)
+    col_g3, col_g4 = st.columns(2)
+    
+    with col_g3:
+        st.markdown("##### Distribuição por Departamento (Top 5)")
+        if not df_mix.empty and 'Descricao' in df_mix.columns:
+            # Pega Nível 1 (Departamentos)
+            df_depto = df_mix[df_mix['Nivel'] == 1].copy()
+            if df_depto.empty: df_depto = df_mix.copy() # Fallback
+            
+            df_depto = df_depto.sort_values('Venda', ascending=False).head(5)
+            
+            fig_donut = px.pie(df_depto, values='Venda', names='Descricao', hole=0.6, color_discrete_sequence=px.colors.sequential.Purples_r)
+            fig_donut.update_layout(height=350, margin=dict(t=0,b=0,l=0,r=0), showlegend=True)
+            fig_donut.update_traces(textinfo='percent+label', textposition='inside')
+            st.plotly_chart(fig_donut, use_container_width=True)
+        else:
+            st.info("Carregue o arquivo 'classificacao_mercadologica.csv' para ver este gráfico.")
+            
+    with col_g4:
+        st.markdown("##### Ranking de Lojas")
+        if 'Loja' in df_filtered.columns:
+            df_rank = df_filtered.groupby('Loja')['Venda'].sum().sort_values(ascending=True).reset_index()
+            fig_bar = px.bar(df_rank, x='Venda', y='Loja', orientation='h', text_auto='.2s', color_discrete_sequence=['#6750A4'])
+            fig_bar.update_layout(height=350, margin=dict(l=0,r=0,t=0,b=0), xaxis=dict(showgrid=False), plot_bgcolor='white')
+            st.plotly_chart(fig_bar, use_container_width=True)
+
+# --- TAB 2: MIX (CLASSIFICAÇÃO) ---
+with tab2:
+    if df_mix.empty:
+        st.warning("⚠️ Arquivo de Classificação Mercadológica não encontrado.")
+        st.markdown("Faça o upload do arquivo **`classificacao_mercadologica.csv`** no GitHub.")
+    else:
+        st.markdown("##### Árvore de Produtos (Bill of Materials)")
+        st.caption("Navegue pela hierarquia: Departamento > Seção > Grupo > Subgrupo")
         
-        # Linha Suave (Meta)
-        fig.add_trace(go.Scatter(
-            x=df_chart['Mes'], y=df_chart['Meta'],
-            name='Meta',
-            mode='lines+markers',
-            line=dict(color='#B3261E', width=3, shape='spline'), # M3 Error Red
-            marker=dict(size=8, color='#FFFFFF', line=dict(width=2, color='#B3261E'))
-        ))
+        # Filtros de visualização
+        nivel_selecionado = st.slider("Explodir até o Nível:", 1, 4, 2)
         
-        fig.update_layout(
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)',
-            margin=dict(l=20, r=20, t=20, b=20),
-            legend=dict(orientation="h", y=1.1),
-            height=350,
-            xaxis=dict(showgrid=False),
-            yaxis=dict(showgrid=True, gridcolor='#E0E3E7')
+        # Filtra base
+        df_tree = df_mix[df_mix['Nivel'] == nivel_selecionado].copy()
+        
+        # Se vazio (talvez a base só tenha itens finais), pega os top itens
+        if df_tree.empty:
+            df_tree = df_mix.nlargest(100, 'Venda')
+            
+        fig_tree = px.treemap(
+            df_tree,
+            path=['Descricao'], # Como o arquivo é flat, usamos a descrição. Se tivesse colunas pai/filho usariamos aqui.
+            values='Venda',
+            color='Venda',
+            color_continuous_scale='Purples',
+            hover_data=['Hierarquia', 'Part']
         )
-        st.plotly_chart(fig, use_container_width=True)
+        fig_tree.update_traces(textinfo="label+value+percent entry")
+        fig_tree.update_layout(height=600, margin=dict(t=0, l=0, r=0, b=0))
+        st.plotly_chart(fig_tree, use_container_width=True)
+        
+        st.markdown("### Tabela de Mix")
+        st.dataframe(df_mix[['Hierarquia', 'Descricao', 'Venda', 'Part']].sort_values('Venda', ascending=False), use_container_width=True)
 
-# 2. Gráfico Gauge (Atingimento)
-with col_charts_2:
-    st.subheader("Atingimento Meta")
-    percentual = (venda_total / meta_total * 100) if meta_total > 0 else 0
-    
-    fig_gauge = go.Figure(go.Indicator(
-        mode="gauge+number",
-        value=percentual,
-        number={'suffix': "%", 'font': {'size': 40, 'color': "#1F1F1F", 'family': "Roboto"}},
-        gauge={
-            'axis': {'range': [None, 120], 'tickwidth': 0},
-            'bar': {'color': "#6750A4"}, # Primary
-            'bgcolor': "white",
-            'borderwidth': 0,
-            'steps': [
-                {'range': [0, 100], 'color': "#EADDFF"}, # Primary Container (Light Purple)
-                {'range': [100, 120], 'color': "#C4EED0"} # Success Light Green
-            ],
-            'threshold': {
-                'line': {'color': "#21005D", 'width': 4},
-                'thickness': 0.75,
-                'value': 100
-            }
-        }
-    ))
-    fig_gauge.update_layout(height=350, margin=dict(t=40, b=20), paper_bgcolor='rgba(0,0,0,0)')
-    st.plotly_chart(fig_gauge, use_container_width=True)
-
-# --- TABELA DETALHADA ---
-st.subheader("Detalhamento por Loja")
-
-if 'Loja' in df_filtered.columns:
-    # Agrupa e trata os dados
-    df_table = df_filtered.groupby('Loja')[['Venda', 'Meta', 'Clientes']].sum().reset_index()
-    
-    # Previne divisão por zero e cria coluna float explícita
-    df_table['Atingimento'] = df_table.apply(
-        lambda row: (row['Venda'] / row['Meta']) if row['Meta'] > 0 else 0.0, axis=1
-    )
-    
-    # Ordena
-    df_table = df_table.sort_values('Venda', ascending=False)
-    
-    # Configuração da Tabela
-    st.dataframe(
-        df_table,
-        use_container_width=True,
-        hide_index=True,
-        column_config={
-            "Loja": st.column_config.TextColumn("Loja", width="medium"),
-            "Venda": st.column_config.NumberColumn(
-                "Venda Realizada", format="R$ %.2f"
-            ),
-            "Meta": st.column_config.NumberColumn(
-                "Meta", format="R$ %.2f"
-            ),
-            "Clientes": st.column_config.NumberColumn(
-                "Cupons", format="%.0f"
-            ),
-            "Atingimento": st.column_config.ProgressColumn(
-                "Atingimento %",
-                format="%.1f%%",
-                min_value=0,
-                max_value=1.5, # Define 150% como máximo da barra visual
-            )
-        }
-    )
+# --- TAB 3: DETALHES ---
+with tab3:
+    st.markdown("##### Detalhamento Consolidado")
+    if 'Loja' in df_filtered.columns:
+        df_table = df_filtered.groupby('Loja')[['Venda', 'Meta', 'Clientes']].sum().reset_index()
+        df_table['Atingimento'] = (df_table['Venda'] / df_table['Meta']).fillna(0)
+        
+        st.dataframe(
+            df_table.style.format({'Venda': 'R$ {:,.2f}', 'Meta': 'R$ {:,.2f}', 'Clientes': '{:,.0f}', 'Atingimento': '{:.1%}'}),
+            use_container_width=True,
+            column_config={
+                "Atingimento": st.column_config.ProgressColumn("Meta %", format="%.1f%%", min_value=0, max_value=1.5),
+                "Venda": st.column_config.NumberColumn("Venda Real", format="R$ %.2f")
+            },
+            hide_index=True
+        )
