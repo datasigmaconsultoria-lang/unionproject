@@ -407,12 +407,14 @@ with tab1:
                 df_chart = df_chart.sort_values('Venda', ascending=False)
 
             fig = go.Figure()
-            # Azul para Realizado
+            # Azul para Realizado com Rótulos
             fig.add_trace(go.Bar(
                 x=df_chart[idx_col], y=df_chart['Venda'], 
                 name='Realizado', 
                 marker_color=COLOR_BLUE,
-                opacity=0.9
+                opacity=0.9,
+                text=df_chart['Venda'].apply(lambda x: f"R$ {x/1e6:.1f}M" if x > 1e6 else f"R$ {x/1e3:.0f}k"), # Rótulos formatados
+                textposition='auto' # Posição automática
             ))
             # Verde para Meta
             fig.add_trace(go.Scatter(
@@ -424,7 +426,11 @@ with tab1:
             ))
             
             fig = update_fig_layout(fig)
-            fig.update_layout(height=320, legend=dict(orientation="h", y=1.1, x=1, xanchor='right'))
+            fig.update_layout(
+                height=320, 
+                legend=dict(orientation="h", y=1.1, x=1, xanchor='right'),
+                margin=dict(t=40) # Aumenta margem superior para caber rótulos se ficarem fora
+            )
             st.plotly_chart(fig, use_container_width=True)
             
     with col_g2:
