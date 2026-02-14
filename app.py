@@ -17,7 +17,7 @@ st.set_page_config(
 st.markdown("""
 <style>
     /* Importando Fontes Google */
-    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap');
 
     /* Variáveis de Cor - Brandbook Data Sigma */
     :root {
@@ -45,58 +45,69 @@ st.markdown("""
         background-color: var(--color-bg);
     }
     
-    /* Ajuste de Padding Principal (Correção do Header Cortado) */
+    /* Ajuste de Padding Principal */
     .block-container {
-        padding-top: 1.5rem !important; /* Mais espaço no topo */
+        padding-top: 1.5rem !important;
         padding-bottom: 3rem;
         max-width: 100%;
     }
 
-    /* --- CABEÇALHO PERSONALIZADO --- */
+    /* --- CABEÇALHO PERSONALIZADO (AJUSTADO) --- */
     .header-sigma {
         display: flex;
         justify_content: space-between;
         align-items: center;
         background: var(--color-surface);
-        padding: 1.2rem 2rem;
+        padding: 1.5rem 2.5rem; /* Aumentei o padding interno */
         border-radius: 16px;
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-        margin-bottom: 1.5rem;
+        margin-bottom: 2rem;
         border-bottom: 3px solid transparent;
         border-image: var(--sigma-gradient);
         border-image-slice: 1;
+        gap: 20px; /* Garante espaço entre os elementos */
     }
     
     .header-logo-left {
-        font-weight: 800;
-        font-size: 22px;
+        font-weight: 900; /* Mais peso para destacar */
+        font-size: 24px; /* Aumentei a fonte */
         background: var(--sigma-gradient);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        letter-spacing: -0.5px;
+        letter-spacing: 0.5px; /* Espaçamento positivo para não encavalar */
+        white-space: nowrap; /* Impede que quebre linha */
     }
     
     .header-title {
-        font-size: 14px;
+        font-size: 16px; /* Aumentei para legibilidade */
         color: var(--color-text-light);
         text-transform: uppercase;
-        letter-spacing: 1.5px;
-        font-weight: 600;
+        letter-spacing: 2px; /* Espaçamento generoso */
+        font-weight: 500;
         text-align: center;
+        line-height: 1.4;
     }
 
     .header-logo-right {
         font-weight: 700;
         color: var(--color-text-main);
-        font-size: 16px;
+        font-size: 18px;
+        letter-spacing: 0.5px;
+        white-space: nowrap;
     }
 
     /* Mobile Header Fix */
-    @media (max-width: 768px) {
+    @media (max-width: 900px) {
         .header-sigma {
             flex-direction: column;
-            gap: 10px;
+            gap: 12px;
             text-align: center;
+            padding: 1.5rem;
+        }
+        
+        .header-title {
+            font-size: 14px;
+            letter-spacing: 1px;
         }
     }
 
@@ -109,7 +120,7 @@ st.markdown("""
         box-shadow: 0 2px 4px rgba(0,0,0,0.02);
         border-left: 4px solid var(--sigma-blue);
         transition: transform 0.2s ease;
-        height: 100%; /* Altura consistente */
+        height: 100%;
     }
     
     div[data-testid="metric-container"]:hover {
@@ -139,11 +150,11 @@ st.markdown("""
         padding-top: 2rem !important;
     }
 
-    /* Inputs e Selectboxes (UX Melhorada) */
+    /* Inputs e Selectboxes */
     .stSelectbox div[data-baseweb="select"] {
         border-radius: 8px;
         border: 1px solid var(--color-border);
-        min-height: 45px; /* Altura de toque maior */
+        min-height: 45px;
     }
     
     .stSelectbox div[data-baseweb="select"]:hover {
@@ -193,7 +204,7 @@ st.markdown("""
         box-shadow: 0 2px 6px rgba(0, 71, 171, 0.3);
     }
     
-    /* Remover fundo branco padrão dos gráficos Plotly se houver container extra */
+    /* Remover fundo branco padrão dos gráficos Plotly */
     .js-plotly-plot .plotly .main-svg {
         background: transparent !important;
     }
@@ -203,7 +214,6 @@ st.markdown("""
 
 # --- FUNÇÕES DE LIMPEZA ROBUSTAS ---
 def clean_currency_br(x):
-    """Limpeza extrema para evitar erros de conversão"""
     if pd.isna(x) or x == "": return 0.0
     if isinstance(x, (int, float)): return float(x)
     s = str(x).strip().replace('"', '').replace("'", "").replace('R$', '').replace(' ', '')
@@ -329,7 +339,7 @@ df_filtered = df.copy()
 if sel_mes != 'Todos': df_filtered = df_filtered[df_filtered['Mes'] == sel_mes]
 if sel_loja != 'Todas': df_filtered = df_filtered[df_filtered['Loja'] == sel_loja]
 
-# --- CABEÇALHO PERSONALIZADO (BRANDBOOK) ---
+# --- CABEÇALHO PERSONALIZADO (AJUSTADO) ---
 st.markdown(f"""
 <div class="header-sigma">
     <div class="header-logo-left">DATA SIGMA</div>
@@ -430,7 +440,7 @@ with tab1:
             gauge={
                 'axis': {'range': [0, 120]}, 
                 'bar': {'color': gauge_color}, 
-                'steps': [{'range': [0, 100], 'color': "rgba(200, 200, 200, 0.2)"}], # Fundo do arco mais suave
+                'steps': [{'range': [0, 100], 'color': "rgba(200, 200, 200, 0.2)"}], 
                 'threshold': {'line': {'color': COLOR_GREEN, 'width': 4}, 'thickness': 0.75, 'value': 100}
             }
         ))
