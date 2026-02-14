@@ -24,7 +24,6 @@ st.markdown("""
         --sigma-blue: #0047AB; 
         --sigma-green: #00A859;
         --sigma-gradient: linear-gradient(90deg, #0047AB 0%, #00A859 100%);
-        
         --color-bg: #F4F6F9;
         --color-surface: #FFFFFF;
         --color-text-main: #1F2937;
@@ -47,43 +46,44 @@ st.markdown("""
     
     /* Ajuste de Padding Principal */
     .block-container {
-        padding-top: 1.5rem !important;
-        padding-bottom: 3rem;
+        padding-top: 1rem !important;
+        padding-bottom: 5rem;
         max-width: 100%;
     }
 
-    /* --- CABEÇALHO PERSONALIZADO (AJUSTADO) --- */
+    /* --- CABEÇALHO PERSONALIZADO --- */
     .header-sigma {
         display: flex;
         justify_content: space-between;
         align-items: center;
         background: var(--color-surface);
-        padding: 1.5rem 2.5rem; /* Aumentei o padding interno */
-        border-radius: 16px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        padding: 1.5rem 2rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
         margin-bottom: 2rem;
         border-bottom: 3px solid transparent;
         border-image: var(--sigma-gradient);
         border-image-slice: 1;
-        gap: 20px; /* Garante espaço entre os elementos */
+        gap: 20px;
+        min-height: 80px; /* Garante altura mínima */
     }
     
     .header-logo-left {
-        font-weight: 900; /* Mais peso para destacar */
-        font-size: 24px; /* Aumentei a fonte */
+        font-weight: 900;
+        font-size: 26px;
         background: var(--sigma-gradient);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        letter-spacing: 0.5px; /* Espaçamento positivo para não encavalar */
-        white-space: nowrap; /* Impede que quebre linha */
+        letter-spacing: 0.5px;
+        white-space: nowrap;
     }
     
     .header-title {
-        font-size: 16px; /* Aumentei para legibilidade */
+        font-size: 15px;
         color: var(--color-text-light);
         text-transform: uppercase;
-        letter-spacing: 2px; /* Espaçamento generoso */
-        font-weight: 500;
+        letter-spacing: 1.5px;
+        font-weight: 600;
         text-align: center;
         line-height: 1.4;
     }
@@ -91,51 +91,42 @@ st.markdown("""
     .header-logo-right {
         font-weight: 700;
         color: var(--color-text-main);
-        font-size: 18px;
-        letter-spacing: 0.5px;
+        font-size: 20px;
         white-space: nowrap;
     }
-
+    
     /* Mobile Header Fix */
     @media (max-width: 900px) {
         .header-sigma {
             flex-direction: column;
-            gap: 12px;
+            gap: 10px;
+            padding: 1rem;
             text-align: center;
-            padding: 1.5rem;
         }
-        
-        .header-title {
-            font-size: 14px;
-            letter-spacing: 1px;
-        }
+        .header-title { font-size: 12px; letter-spacing: 1px; }
     }
 
     /* CARDS (Big Numbers) */
     div[data-testid="metric-container"] {
         background-color: var(--color-surface);
-        padding: 20px;
+        padding: 24px;
         border-radius: 12px;
         border: 1px solid var(--color-border);
         box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-        border-left: 4px solid var(--sigma-blue);
-        transition: transform 0.2s ease;
+        border-left: 5px solid var(--sigma-blue);
         height: 100%;
-    }
-    
-    div[data-testid="metric-container"]:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 16px rgba(0,0,0,0.08);
+        min-height: 120px;
     }
 
     div[data-testid="metric-container"] label {
-        font-size: 13px !important;
-        font-weight: 600 !important;
+        font-size: 14px !important;
+        font-weight: 700 !important;
         color: var(--color-text-light) !important;
+        margin-bottom: 8px !important;
     }
     
     div[data-testid="metric-container"] div[data-testid="stMetricValue"] {
-        font-size: 26px !important;
+        font-size: 32px !important;
         font-weight: 700 !important;
         color: var(--color-text-main) !important;
     }
@@ -146,87 +137,88 @@ st.markdown("""
         border-right: 1px solid var(--color-border);
     }
     
-    section[data-testid="stSidebar"] .block-container {
-        padding-top: 2rem !important;
-    }
-
-    /* Inputs e Selectboxes */
+    /* Dropdowns e Botões Maiores (UX) */
     .stSelectbox div[data-baseweb="select"] {
         border-radius: 8px;
-        border: 1px solid var(--color-border);
-        min-height: 45px;
-    }
-    
-    .stSelectbox div[data-baseweb="select"]:hover {
-        border-color: var(--sigma-blue);
-    }
-
-    /* Botões */
-    .stButton button {
-        background: var(--sigma-blue);
-        color: white;
-        border-radius: 8px;
-        border: none;
-        height: 45px;
-        font-weight: 600;
-        transition: all 0.3s;
-        width: 100%;
-    }
-    
-    .stButton button:hover {
-        background: var(--sigma-green);
-        box-shadow: 0 4px 10px rgba(0, 168, 89, 0.3);
+        min-height: 50px; /* Altura confortável para clique */
+        border-color: var(--color-border);
+        font-size: 16px;
     }
 
     /* Tabs (Abas) */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
-        padding-bottom: 12px;
+        gap: 10px;
         border-bottom: 1px solid var(--color-border);
-        margin-bottom: 20px;
+        margin-bottom: 24px;
     }
     
     .stTabs [data-baseweb="tab"] {
-        height: 42px;
+        height: 48px;
         border-radius: 8px;
         background-color: white;
         border: 1px solid var(--color-border);
         color: var(--color-text-light);
-        font-weight: 500;
-        font-size: 14px;
-        padding: 0 24px;
+        font-weight: 600;
+        font-size: 15px;
+        padding: 0 32px;
     }
 
     .stTabs [aria-selected="true"] {
         background: var(--sigma-gradient);
         color: white;
         border: none;
-        box-shadow: 0 2px 6px rgba(0, 71, 171, 0.3);
+        box-shadow: 0 4px 12px rgba(0, 71, 171, 0.25);
     }
     
-    /* Remover fundo branco padrão dos gráficos Plotly */
+    /* Remove fundo branco dos gráficos */
     .js-plotly-plot .plotly .main-svg {
         background: transparent !important;
     }
-
 </style>
 """, unsafe_allow_html=True)
 
-# --- FUNÇÕES DE LIMPEZA ROBUSTAS ---
+# --- FUNÇÕES DE LIMPEZA ROBUSTAS (CORREÇÃO DE CLIENTES) ---
 def clean_currency_br(x):
-    if pd.isna(x) or x == "": return 0.0
-    if isinstance(x, (int, float)): return float(x)
+    """Para valores monetários (float)"""
+    if pd.isna(x) or str(x).strip() == "": return 0.0
+    # Converte para string para garantir limpeza de pontos
     s = str(x).strip().replace('"', '').replace("'", "").replace('R$', '').replace(' ', '')
     s = s.replace('.', '').replace(',', '.')
     try: return float(s)
     except: return 0.0
 
 def clean_percentage_br(x):
-    if pd.isna(x) or x == "": return 0.0
-    if isinstance(x, (int, float)): return float(x)
+    """Para porcentagens"""
+    if pd.isna(x) or str(x).strip() == "": return 0.0
     s = str(x).strip().replace('"', '').replace('%', '').replace(',', '.')
     try: return float(s)
     except: return 0.0
+
+def clean_int_br(x):
+    """
+    CORREÇÃO CRÍTICA: Força interpretação de ponto como milhar.
+    Ex: 13.514 -> vira 13514 (e não 13 ou 13.5)
+    """
+    if pd.isna(x) or str(x).strip() == "": return 0
+    
+    # Converte tudo para string primeiro para evitar que o Pandas interprete 1.000 como 1.0
+    s = str(x).strip()
+    
+    # Remove aspas e espaços
+    s = s.replace('"', '').replace("'", "").replace(' ', '')
+    
+    # Se tiver vírgula (ex: 1.234,00), remove o decimal primeiro
+    if ',' in s:
+        s = s.split(',')[0]
+    
+    # Agora remove o ponto de milhar
+    s = s.replace('.', '')
+    
+    try:
+        # Converte para float primeiro (pra garantir) depois para int
+        return int(float(s))
+    except:
+        return 0
 
 # --- CARREGAMENTO DE DADOS ---
 @st.cache_data
@@ -239,10 +231,11 @@ def load_data():
         base_file = next((f for f in files if 'base' in f.lower() or 'dados' in f.lower()), None)
         
         if base_file:
+            # Lê tudo como string (dtype=str) para evitar que o Pandas converta "1.000" em 1.0 automaticamente
             try:
-                df_base = pd.read_csv(base_file, encoding='utf-8', on_bad_lines='skip')
+                df_base = pd.read_csv(base_file, encoding='utf-8', on_bad_lines='skip', dtype=str)
             except:
-                df_base = pd.read_csv(base_file, encoding='latin1', on_bad_lines='skip')
+                df_base = pd.read_csv(base_file, encoding='latin1', on_bad_lines='skip', dtype=str)
                 
             df_base.columns = df_base.columns.str.strip()
             
@@ -257,10 +250,12 @@ def load_data():
                 if match: cols_found[match] = v
             
             df_base = df_base.rename(columns=cols_found)
-            for col in ['Venda', 'Meta', 'Clientes']:
-                if col in df_base.columns: df_base[col] = df_base[col].apply(clean_currency_br)
-            if 'Margem_Perc' in df_base.columns:
-                df_base['Margem_Perc'] = df_base['Margem_Perc'].apply(clean_percentage_br)
+            
+            # Aplica limpezas específicas
+            if 'Venda' in df_base.columns: df_base['Venda'] = df_base['Venda'].apply(clean_currency_br)
+            if 'Meta' in df_base.columns: df_base['Meta'] = df_base['Meta'].apply(clean_currency_br)
+            if 'Clientes' in df_base.columns: df_base['Clientes'] = df_base['Clientes'].apply(clean_int_br)
+            if 'Margem_Perc' in df_base.columns: df_base['Margem_Perc'] = df_base['Margem_Perc'].apply(clean_percentage_br)
                 
             datasets['base'] = df_base
     except Exception as e:
@@ -323,23 +318,25 @@ sel_loja = 'Todas'
 if 'Mes' in df.columns:
     meses_unicos = df['Mes'].unique()
     ordem_meses = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ']
-    meses_sorted = sorted([m for m in meses_unicos if isinstance(m, str)], 
+    # Tratamento para garantir que meses sejam strings antes de ordenar
+    meses_validos = [str(m) for m in meses_unicos if isinstance(m, str) or pd.notna(m)]
+    meses_sorted = sorted(meses_validos, 
                           key=lambda x: ordem_meses.index(x.upper()) if x.upper() in ordem_meses else 99)
     sel_mes = st.sidebar.selectbox("Período (Mês)", ['Todos'] + meses_sorted)
 
 if 'Loja' in df.columns:
-    lojas = sorted([l for l in df['Loja'].unique() if isinstance(l, str)])
+    lojas = sorted([str(l) for l in df['Loja'].unique() if pd.notna(l)])
     sel_loja = st.sidebar.selectbox("Unidade de Negócio", ['Todas'] + lojas)
 
 st.sidebar.markdown("---")
-st.sidebar.info("**Nota Data Sigma:** Dados processados via Pipeline ETL.")
+st.sidebar.info("**Nota Data Sigma:** Pipeline atualizado com validação de milhar BR.")
 
 # Aplica Filtros
 df_filtered = df.copy()
 if sel_mes != 'Todos': df_filtered = df_filtered[df_filtered['Mes'] == sel_mes]
 if sel_loja != 'Todas': df_filtered = df_filtered[df_filtered['Loja'] == sel_loja]
 
-# --- CABEÇALHO PERSONALIZADO (AJUSTADO) ---
+# --- CABEÇALHO ---
 st.markdown(f"""
 <div class="header-sigma">
     <div class="header-logo-left">DATA SIGMA</div>
@@ -348,19 +345,17 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# --- CORES DA MARCA PARA GRÁFICOS ---
-COLOR_BLUE = "#0047AB" # Azul Sigma
-COLOR_GREEN = "#00A859" # Verde Sigma
-COLOR_ALERT = "#EF4444" # Vermelho Alerta
-COLOR_NEUTRAL = "#E5E7EB" # Cinza Neutro
+# --- CORES ---
+COLOR_BLUE = "#0047AB"
+COLOR_GREEN = "#00A859"
+COLOR_ALERT = "#EF4444"
 COLOR_TEXT = "#1F2937"
-COLOR_GRADIENT = ["#0047AB", "#006494", "#00817D", "#009C65", "#00A859"] # Gradiente Data Sigma
+COLOR_GRADIENT = ["#0047AB", "#006494", "#00817D", "#009C65", "#00A859"]
 
-# Configuração global de layout para gráficos transparentes
 def update_fig_layout(fig):
     fig.update_layout(
-        paper_bgcolor='rgba(0,0,0,0)', # Transparente
-        plot_bgcolor='rgba(0,0,0,0)',  # Transparente
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
         font={'color': COLOR_TEXT, 'family': 'Roboto'},
         margin=dict(l=10, r=10, t=30, b=10),
         xaxis=dict(showgrid=False, zeroline=False),
@@ -376,8 +371,10 @@ with tab1:
     venda = df_filtered['Venda'].sum() if 'Venda' in df_filtered.columns else 0
     meta = df_filtered['Meta'].sum() if 'Meta' in df_filtered.columns else 0
     clientes = df_filtered['Clientes'].sum() if 'Clientes' in df_filtered.columns else 0
-    ticket = venda / clientes if clientes > 0 else 0
     
+    # Cálculo seguro do ticket
+    ticket = venda / clientes if clientes > 0 else 0
+        
     if 'Margem_Perc' in df_filtered.columns:
         margem = df_filtered['Margem_Perc'].mean()
     else: margem = 0
@@ -407,16 +404,17 @@ with tab1:
                 df_chart = df_chart.sort_values('Venda', ascending=False)
 
             fig = go.Figure()
-            # Azul para Realizado com Rótulos
+            
+            # Adicionando Rótulos de Dados (R$ 1.2M)
             fig.add_trace(go.Bar(
                 x=df_chart[idx_col], y=df_chart['Venda'], 
                 name='Realizado', 
                 marker_color=COLOR_BLUE,
                 opacity=0.9,
-                text=df_chart['Venda'].apply(lambda x: f"R$ {x/1e6:.1f}M" if x > 1e6 else f"R$ {x/1e3:.0f}k"), # Rótulos formatados
-                textposition='auto' # Posição automática
+                text=df_chart['Venda'].apply(lambda x: f"R$ {x/1e6:.1f}M" if x > 1e6 else f"R$ {x/1e3:.0f}k"),
+                textposition='auto'
             ))
-            # Verde para Meta
+            
             fig.add_trace(go.Scatter(
                 x=df_chart[idx_col], y=df_chart['Meta'], 
                 name='Meta', 
@@ -426,18 +424,13 @@ with tab1:
             ))
             
             fig = update_fig_layout(fig)
-            fig.update_layout(
-                height=320, 
-                legend=dict(orientation="h", y=1.1, x=1, xanchor='right'),
-                margin=dict(t=40) # Aumenta margem superior para caber rótulos se ficarem fora
-            )
+            fig.update_layout(height=320, legend=dict(orientation="h", y=1.1, x=1, xanchor='right'), margin=dict(t=40))
             st.plotly_chart(fig, use_container_width=True)
             
     with col_g2:
         st.markdown("##### 🎯 Atingimento Global")
         perc = (venda / meta * 100) if meta > 0 else 0
         perc_visual = min(perc, 999)
-        
         gauge_color = COLOR_GREEN if perc >= 100 else (COLOR_BLUE if perc >= 80 else COLOR_ALERT)
 
         fig_gauge = go.Figure(go.Indicator(
